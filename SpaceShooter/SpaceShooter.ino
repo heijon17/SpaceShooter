@@ -119,8 +119,8 @@ class Meteor {
       draw(BLACK);
       x0 -= 4;
       draw(YELLOW);
-      if (x0 < 0) {
-
+      if (x0 > 160) {
+        draw(BLACK);
         init();
       }
     }
@@ -170,10 +170,13 @@ class Laser {
 };
 
 Fighter fighter(30, 35, 30, 15, 40, 25); // initial position
+
+// States
 bool crashed = false;
 bool startgame = false;
 bool updateMenu = true;
 bool menuHighscore = false;
+bool menuResetHighscore = false;
 uint16_t selectedMenuItem = 1;
 
 Meteor meteors[5] = Meteor();
@@ -244,7 +247,7 @@ void loop()
     // Meteor spawn
     if (currentMillis - prevMeteorSpawnMillis >= MeteorSpawnRate) {
       prevMeteorSpawnMillis = currentMillis;
-
+      Serial.println(spawned);
       meteors[spawned].setVisible(true);
       if (spawned == 4) {
         spawned = 0;
@@ -282,7 +285,7 @@ void loop()
       tft.fillRect(120, 5, 40, 10, BLACK);
       tft.setTextColor(GREEN);
       tft.print(currentScore);
-    
+
 
     }
 
@@ -318,7 +321,6 @@ void showStartMenu() {
 
   while (updateMenu) {
     menuHighscore = false;
-
     tft.fillRoundRect(30, 10, 100, 60, 5, RED);
     tft.setCursor(50, 15);
     tft.setTextColor(BLACK);
@@ -330,29 +332,47 @@ void showStartMenu() {
     updateMenu = false;
   }
 
-
-
+  // Handle button-actions
   if (digitalRead(BTN_FIRE) == HIGH) {
+    Serial.println(menuHighscore);
+    Serial.println(menuResetHighscore);
     if (menuHighscore) {
-      updateMenu = true;
+      if (selectedMenuItem == 1 && menuResetHighscore) {
+        resetHighscore();
+        currentHighscore = getHighscore();
+        showHighscore();
+        menuResetHighscore = false;
+        selectedMenuItem = 0;
+        delay(250);
+        return;
+      } else if (selectedMenuItem == 2) {
+        showHighscore();
+        menuResetHighscore = false;
+        selectedMenuItem = 0;
+        delay(250);
+        return;
+      }
+      showResetHighscore();
       delay(250);
     } else {
       if (selectedMenuItem == 1) {
-
         tft.fillScreen(BLACK);
         fighter.setPosition(10, 35, 10, 15, 20, 25);
         startgame = true;
         gameStartMillis = millis();
-      } else {
+      } else if (selectedMenuItem == 2) {
         showHighscore();
+        selectedMenuItem = 0;
         delay(250);
       }
     }
-
   }
+
   if (digitalRead(BTN_UP) == HIGH) {
-    if (menuHighscore) {
+    if (menuHighscore && !menuResetHighscore) {
+      // Go back
       updateMenu = true;
+      selectedMenuItem = 2;
       delay(250);
     } else {
       fighter.draw(RED);
@@ -361,11 +381,13 @@ void showStartMenu() {
       selectedMenuItem = 1;
       delay(250);
     }
-
   }
+
   if (digitalRead(BTN_DOWN) == HIGH) {
-    if (menuHighscore) {
+    if (menuHighscore && !menuResetHighscore) {
+      // Go back
       updateMenu = true;
+      selectedMenuItem = 2;
       delay(250);
     } else {
       fighter.draw(RED);
@@ -374,10 +396,7 @@ void showStartMenu() {
       selectedMenuItem = 2;
       delay(250);
     }
-
   }
-
-
 }
 
 void showHighscore() {
@@ -390,6 +409,20 @@ void showHighscore() {
   tft.setCursor(50, 40);
   tft.print(currentHighscore);
   menuHighscore = true;
+}
+
+void showResetHighscore() {
+  tft.fillRoundRect(30, 10, 100, 60, 5, RED);
+  tft.setCursor(50, 15);
+  tft.setTextColor(BLACK);
+  tft.setTextSize(1, 3);
+  tft.print("Reset?");
+  tft.setCursor(50, 40);
+  tft.print("Back");
+  fighter.setPosition(32, 35, 32, 15, 42, 25);
+  fighter.draw(GREEN);
+  selectedMenuItem = 1;
+  menuResetHighscore = true;
 }
 
 
@@ -485,11 +518,15 @@ void restartGame() {
   setup();
 }
 
+void resetHighscore() {
+  SD.remove("highscore.txt");
+  saveScore(0);
+}
+
 
 void saveScore(uint16_t score) {
   File myFile;
 
-  // WRITE
   myFile = SD.open("highscore.txt", FILE_WRITE);
 
   if (myFile) {
