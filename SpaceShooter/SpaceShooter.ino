@@ -10,7 +10,9 @@
 
 #define SD_CS          10
 
+// https://github.com/greiman/SdFat
 SdFat SD;
+
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
 // Color definitions
@@ -195,6 +197,7 @@ void setup() {
   Serial.begin(9600);
   SPI.begin();
 
+  // From SD example.
   Serial.print("Initializing SD card...");
 
   if (!SD.begin(SD_CS)) {
@@ -334,8 +337,6 @@ void showStartMenu() {
 
   // Handle button-actions
   if (digitalRead(BTN_FIRE) == HIGH) {
-    Serial.println(menuHighscore);
-    Serial.println(menuResetHighscore);
     if (menuHighscore) {
       if (selectedMenuItem == 1 && menuResetHighscore) {
         resetHighscore();
@@ -515,7 +516,9 @@ void restartGame() {
   for (int i = 0; i < 5; i++) {
     meteors[i].init();
   }
-  setup();
+  tft.fillScreen(BLACK);
+  currentHighscore = getHighscore();
+  fighter.setPosition(32, 35, 32, 15, 42, 25);
 }
 
 void resetHighscore() {
@@ -523,7 +526,7 @@ void resetHighscore() {
   saveScore(0);
 }
 
-
+// From arduino examples
 void saveScore(uint16_t score) {
   File myFile;
 
