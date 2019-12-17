@@ -514,6 +514,7 @@ void restartGame() {
   MeteorMovementSpeed = 100;
   MeteorSpawnRate = 3000;
   for (int i = 0; i < 5; i++) {
+    if (i < 3) lasers[i].init(0, 0);
     meteors[i].init();
   }
   tft.fillScreen(BLACK);
@@ -526,7 +527,7 @@ void resetHighscore() {
   saveScore(0);
 }
 
-// From arduino examples
+// From arduino SD examples
 void saveScore(uint16_t score) {
   File myFile;
 
